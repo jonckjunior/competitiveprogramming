@@ -1,96 +1,81 @@
 #include <bits/stdc++.h>
 using namespace std;
-typedef tuple<int,int,int> iii;
+typedef pair<int,int> ii;
 
-int sortIndex[100015][50], freq[100015], LCP[100015], SA[100015], DP[100015], n;
-vector<iii> L, temp;
+const int maxn = 1e5+5;
+const int logn = log2(maxn) + 5;
 
-void solve(int pos){
-	memset(freq, 0, sizeof freq);
-	int maxi = max(300, n+5);
-	for(int i = 0; i < n; i++){
-		int x;
-		if(pos == 0) x = get<0>(L[i]);
-		else if(pos == 1) x = get<1>(L[i]);
-		else x = get<2>(L[i]);
-		freq[x]++;
-	}
-	int sum = 0;
-	for(int i = 0; i < maxi; i++){
-		int aux = freq[i];
-		freq[i] = sum;
-		sum += aux;
-	}
-	for(int i = 0; i < n; i++){
-		int x;
-		if(pos == 0) x = get<0>(L[i]);
-		else if(pos == 1) x = get<1>(L[i]);
-		else x = get<2>(L[i]);
-		temp[freq[x]++] = L[i];
-	}
-	for(int i = 0; i < n; i++)
-		L[i] = temp[i];
+int sortIndex[maxn][logn], L[maxn][3], cnt[maxn], temp[maxn][3];
+int LCP[maxn], suff[maxn];
+int n;
+
+void radixSort(int pos){
+    memset(cnt, 0, sizeof cnt);
+    for(int i = 0; i < n; i++) cnt[L[i][pos]+1]++;
+    for(int i = 1; i <= max(300, n); i++) cnt[i] += cnt[i-1];
+    for(int i = 0; i < n; i++){
+        int idx = cnt[ L[i][pos] ]++;
+        for(int j = 0; j < 3; j++)
+            temp[idx][j] = L[i][j];
+    }
+    for(int i = 0; i < n; i++)
+        for(int j = 0; j < 3; j++)
+            L[i][j] = temp[i][j];
 }
 
-int findLCP(int x, int y){
-	int maxi = log2(n)+1;
-	int len = 0;
-	for(int k = maxi; k >= 0 and x < n and y < n; k--)
-		if(sortIndex[x][k] == sortIndex[y][k]){
-			x += (1 << k);
-			y += (1 << k);
-			len += (1 << k);
-		}
-	return len;
+int findLCP(int x, int y, int k){
+    int sum = 0;
+    for(int i = k; i >= 0 and x < n and y < n; i--)
+        if(sortIndex[x][i] == sortIndex[y][i]){
+            x += (1 << i);
+            y += (1 << i);
+            sum += (1  << i);
+        }
+    return sum;
 }
 
+void suffixarray(string s){    
+    n = s.size();
+    for(int i = 0; i < n; i++)
+        sortIndex[i][0] = s[i];
+    int k, step;
+    for(k = 1, step = 1; step < n; k++, step *= 2){
+        for(int i = 0; i < n; i++){
+            L[i][0] = sortIndex[i][k-1];
+            L[i][1] = (i + step < n ? sortIndex[i+step][k-1] : 0);
+            L[i][2] = i;
+        }
+        radixSort(1); radixSort(0);
+        sortIndex[L[0][2]][k] = 0;
+        int classes = 1;
+        for(int i = 1; i < n; i++){
+            if(L[i][0] != L[i-1][0] || L[i][1] != L[i-1][1])
+                classes++;
+            sortIndex[L[i][2]][k] = classes - 1;
+        }
+    }
+    k--;
+    for(int i = 0; i < n; i++)
+        suff[ sortIndex[i][k] ] = i;
+    for(int i = 1; i < n; i++)
+        LCP[i] = findLCP(suff[i-1], suff[i], k);
+}
 
 int main(){
-    cout.sync_with_stdio(false);
-    cin.tie(nullptr);
-	string s; cin >> s;
-	n = s.size();
-	L.resize(n);
-	temp.resize(n);
-	memset(LCP, 0, sizeof LCP);
-	memset(DP, 0, sizeof DP);
-	memset(SA, 0, sizeof SA);
-	
-	int maxi = log2(n) + 1;
 
-	for(int i = 0; i < n; i++)
-		sortIndex[i][0] = s[i];
+    int t; cin >> t;
+    while(t--){
+        string s; cin >> s;
+        s += "$";
+        suffixarray(s);
+        int res = 0;
+        for(int i = 1; i < n; i++){
+            int len = n-suff[i]-1;
+            res += len - LCP[i];
+        }
+        cout << res << endl;
+    }
 
-	for(int k = 1, step = 1; k <= maxi; k++, step *= 2){
-
-		for(int i = 0; i < n; i++){
-			if(i+step < n)
-				L[i] = iii(sortIndex[i][k-1], sortIndex[i+step][k-1], i);
-			else
-				L[i] = iii(sortIndex[i][k-1], 0, i);
-		}
-
-		solve(2);
-		solve(1);
-		solve(0);
-		// sort(L.begin(), L.end());
-
-		int pos = 0;
-		for(int i = 0; i < n; i++){
-			int x = get<0>(L[i]), y = get<1>(L[i]), idx = get<2>(L[i]);
-			if(i > 0 and get<0>(L[i-1]) == x and get<1>(L[i-1]) == y)
-				sortIndex[idx][k] = pos;
-			else
-				sortIndex[idx][k] = ++pos;
-		}
-	}
-
-	for(int i = 0; i < n; i++)
-		SA[ sortIndex[i][maxi]-1 ] = i;
-
-	int res = 0, idx = 0;
-	for(int i = 0; i < n-1; i++)
-		LCP[i] = findLCP(SA[i], SA[i+1]);
-
+    
     return 0;
 }
