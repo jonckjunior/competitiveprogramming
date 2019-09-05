@@ -61,7 +61,7 @@ int main(){
         // EQ = dp[j] + k + v[i]² -2.v[i].v[j] + v[j]²
         // EQ = v[i]² + k + (-2.v[j].v[i] + v[j]² + dp[j])
         // (-2.v[j].v[i] + v[j]² + dp[j]) is the equation of
-        //      a line Y = -2.v[j] + v[j]² + dp[j] evaluated at point v[i]
+        //      a line Y = -2.v[j].x + v[j]² + dp[j] evaluated at point x = v[i]
         //      see that Y(v[i]) = -2.v[j].v[i] + v[j]² + dp[j]
         // we want to find the line that evaluates the minium at point v[i]
         ll val = query(1, 1, 1e6, v[i]);
